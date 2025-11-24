@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIFA Match Companion</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --accent: #32f56b; /* FIFA Green */
+            --warning: #f5e632; /* Referee Yellow */
+            --text: #e0e0e0;
+            --border: #333;
+            --highlight: #2c2c2c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+            font-style: italic;
+        }
+        
+        h1 span { color: var(--accent); }
+
+        .subtitle { font-size: 14px; color: #777; margin-bottom: 30px; }
+
+        /* --- SECTION 1: PLAYERS --- */
+        .section-title {
+            width: 100%;
+            max-width: 800px;
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 800px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .input-group input {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            width: 100%;
+            text-align: center;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+
+        .input-group input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+        /* --- SECTION 2: GAME MODES (The UNO Logic) --- */
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 30px;
+        }
+
+        .mode-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-card:hover {
+            background: var(--highlight);
+            transform: translateY(-2px);
+        }
+
+        /* The Active Selection State */
+        .mode-card.active {
+            border-color: var(--accent);
+            background: rgba(50, 245, 107, 0.05);
+            box-shadow: 0 0 15px rgba(50, 245, 107, 0.1);
+        }
+
+        .mode-card.active::after {
+            content: "SELECTED";
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 9px;
+            background: var(--accent);
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .mode-title { font-weight: bold; color: white; margin-bottom: 5px; font-size: 15px; }
+        .mode-desc { font-size: 12px; color: #888; line-height: 1.4; }
+
+        /* --- SECTION 3: CONTROLS --- */
+        .control-bar {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 40px;
+        }
+
+        .star-select {
+            flex: 1;
+            padding: 15px;
+            background: #2a2a2a;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .btn-kickoff {
+            flex: 2;
+            background-color: var(--accent);
+            color: #000;
+            font-weight: 900;
+            text-transform: uppercase;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            letter-spacing: 1px;
+            transition: transform 0.1s;
+        }
+
+        .btn-kickoff:active { transform: scale(0.98); }
+
+        /* --- SECTION 4: THE PITCH (Results) --- */
+        .results-area {
+            display: none; /* Hidden until generated */
+            width: 100%;
+            max-width: 800px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* The Selected Mode Banner */
+        .active-mode-banner {
+            background: var(--warning);
+            color: #000;
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #000;
+        }
+
+        .matchup-card {
+            background: linear-gradient(160deg, #252525, #1a1a1a);
+            border: 1px solid #444;
+            border-radius: 0 0 15px 15px; /* Top corners flat to attach to banner */
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .team-block { text-align: center; flex: 1; }
+        .team-name { font-size: 24px; font-weight: 900; color: white; margin: 10px 0; }
+        .team-badge { display: inline-block; padding: 4px 12px; background: #333; border-radius: 15px; font-size: 12px; color: #ccc; }
+        .player-name { color: var(--accent); font-size: 12px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+
+        .vs { font-size: 24px; font-weight: 900; color: #555; font-style: italic; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .input-group { flex-direction: column; gap: 10px; }
+            .matchup-card { flex-direction: column; gap: 20px; }
+            .control-bar { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>FIFA <span>Companion</span></h1>
+    <div class="subtitle">Select your Mode. Generate the Match.</div>
+
+    <!-- 1. PLAYER INPUTS -->
+    <div class="section-title">Step 1: Who is playing?</div>
+    <div class="input-group">
+        <input type="text" id="p1-input" placeholder="Home (e.g. John & Mike)">
+        <span style="font-weight:bold; color:#444;">VS</span>
+        <input type="text" id="p2-input" placeholder="Away (e.g. Steve)">
+    </div>
+
+    <!-- 2. GAME MODE SELECTION (The UNO Feature) -->
+    <div class="section-title">Step 2: Choose Game Mode</div>
+    <div class="mode-grid" id="mode-grid">
+        <!-- Modes injected via JS -->
+    </div>
+
+    <!-- 3. CONTROLS -->
+    <div class="control-bar">
+        <select id="star-filter" class="star-select">
+            <option value="any">Any Star Rating</option>
+            <option value="5">5 Stars Only</option>
+            <option value="4.5">4.5 Stars Only</option>
+            <option value="4">4 Stars Only</option>
+            <option value="3.5">3.5 Stars Only</option>
+        </select>
+        <button class="btn-kickoff" onclick="kickOff()">GENERATE MATCH</button>
+    </div>
+
+    <!-- 4. RESULTS DISPLAY -->
+    <div class="results-area" id="results-area">
+        <div class="active-mode-banner" id="banner-text">
+            CLASSIC MATCH
+        </div>
+        <div class="matchup-card">
+            <!-- Home -->
+            <div class="team-block">
+                <div class="player-name" id="disp-p1">HOME</div>
+                <div class="team-name" id="t1-name">Real Madrid</div>
+                <div class="team-badge" id="t1-meta">5 Stars | La Liga</div>
+            </div>
+
+            <div class="vs">VS</div>
+
+            <!-- Away -->
+            <div class="team-block">
+                <div class="player-name" id="disp-p2">AWAY</div>
+                <div class="team-name" id="t2-name">Barcelona</div>
+                <div class="team-badge" id="t2-meta">4.5 Stars | La Liga</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === CONFIGURATION ===
+
+        // 1. Define your Game Modes here
+        const gameModes = [
+            {
+                id: "classic",
+                title: "Classic Match",
+                desc: "Standard rules. No gimmicks. Just skill.",
+                ruleText: "CLASSIC MATCH: STANDARD RULES"
+            },
+            {
+                id: "market",
+                title: "Transfer Market",
+                desc: "Each team loans 1 player from any club.",
+                ruleText: "RULE: LOAN 1 PLAYER FROM ANY CLUB"
+            },
+            {
+                id: "tactical",
+                title: "Tactical Roulette",
+                desc: "You must use a random formation generated below.",
+                ruleText: "RULE: MUST USE 3-AT-THE-BACK FORMATION" // Dynamic logic handled in function
+            },
+            {
+                id: "reroll",
+                title: "Reroll Tax",
+                desc: "Don't like your team? Reroll, but start 1-0 down.",
+                ruleText: "RULE: REROLL ALLOWED (PENALTY: START 0-1)"
+            },
+            {
+                id: "arcade",
+                title: "Arcade Mode",
+                desc: "Long shots only counts. Or Speedsters only.",
+                ruleText: "RULE: GOALS INSIDE THE BOX DON'T COUNT"
+            }
+        ];
+
+        // 2. Team Database
+        const teams = [
+            { name: "Real Madrid", stars: 5, league: "La Liga" },
+            { name: "Man City", stars: 5, league: "EPL" },
+            { name: "Bayern", stars: 5, league: "Bundesliga" },
+            { name: "PSG", stars: 5, league: "Ligue 1" },
+            { name: "Liverpool", stars: 4.5, league: "EPL" },
+            { name: "Arsenal", stars: 4.5, league: "EPL" },
+            { name: "Barcelona", stars: 4.5, league: "La Liga" },
+            { name: "Inter", stars: 4.5, league: "Serie A" },
+            { name: "Leverkusen", stars: 4.5, league: "Bundesliga" },
+            { name: "Aston Villa", stars: 4, league: "EPL" },
+            { name: "Dortmund", stars: 4, league: "Bundesliga" },
+            { name: "AC Milan", stars: 4, league: "Serie A" },
+            { name: "Brighton", stars: 3.5, league: "EPL" },
+            { name: "Ajax", stars: 3.5, league: "Eredivisie" },
+            { name: "Inter Miami", stars: 3.5, league: "MLS" }
+        ];
+
+        // State
+        let currentModeId = "classic"; // Default
+
+        // === INITIALIZATION ===
+        window.onload = function() {
+            const grid = document.getElementById('mode-grid');
+            
+            gameModes.forEach(mode => {
+                const card = document.createElement('div');
+                card.className = `mode-card ${mode.id === 'classic' ? 'active' : ''}`;
+                card.onclick = () => selectMode(mode.id, card);
+                
+                card.innerHTML = `
+                    <div class="mode-title">${mode.title}</div>
+                    <div class="mode-desc">${mode.desc}</div>
+                `;
+                grid.appendChild(card);
+            });
+        };
+
+        // === LOGIC ===
+        function selectMode(id, cardElement) {
+            currentModeId = id;
+            
+            // Visual Toggle
+            document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('active'));
+            cardElement.classList.add('active');
+        }
+
+        function kickOff() {
+            // 1. Get Players
+            const p1 = document.getElementById('p1-input').value || "HOME TEAM";
+            const p2 = document.getElementById('p2-input').value || "AWAY TEAM";
+            document.getElementById('disp-p1').innerText = p1;
+            document.getElementById('disp-p2').innerText = p2;
+
+            // 2. Filter Teams
+            const filter = document.getElementById('star-filter').value;
+            let pool = (filter === "any") ? teams : teams.filter(t => t.stars == filter);
+
+            if(pool.length < 2) { alert("Not enough teams!"); return; }
+
+            // 3. Pick Random Teams
+            const idx1 = Math.floor(Math.random() * pool.length);
+            let idx2;
+            do { idx2 = Math.floor(Math.random() * pool.length); } while(idx1 === idx2);
+
+            updateTeamDisplay(pool[idx1], pool[idx2]);
+
+            // 4. Set Rule Banner based on Mode
+            const mode = gameModes.find(m => m.id === currentModeId);
+            let displayText = mode.ruleText;
+
+            // Special logic for "Tactical" mode to randomize the formation
+            if(currentModeId === 'tactical') {
+                const formations = ["3-5-2", "4-2-4", "5-3-2 (Park Bus)", "4-4-2 (Classic)", "False 9"];
+                const randForm = formations[Math.floor(Math.random() * formations.length)];
+                displayText = `TACTICAL: BOTH TEAMS MUST PLAY ${randForm}`;
+            }
+
+            document.getElementById('banner-text').innerText = displayText;
+
+            // 5. Show Results
+            document.getElementById('results-area').style.display = 'block';
+        }
+
+        function updateTeamDisplay(t1, t2) {
+            document.getElementById('t1-name').innerText = t1.name;
+            document.getElementById('t1-meta').innerText = `${t1.stars} Stars | ${t1.league}`;
+            
+            document.getElementById('t2-name').innerText = t2.name;
+            document.getElementById('t2-meta').innerText = `${t2.stars} Stars | ${t2.league}`;
+        }
+    </script>
+</body>
+</html>
